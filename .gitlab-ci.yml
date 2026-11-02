@@ -1,0 +1,89 @@
+include:
+  - component: $CI_SERVER_FQDN/the-mandrel-project/mandrel-ci/commit-lint@2.3.0
+
+stages:
+  - lint
+  - version
+  - build
+  - publish
+
+.container-base:
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: "/certs/client"
+  before_script:
+    - |
+      for i in $(seq 1 30); do
+        docker info >/dev/null 2>&1 && break
+        echo "waiting for the docker daemon ($i/30)"
+        sleep 2
+      done
+      docker info >/dev/null || { echo "ERROR: docker daemon unreachable"; exit 1; }
+    - |
+      if [ -z "$CI_REGISTRY_IMAGE" ]; then
+        echo "ERROR: CI_REGISTRY_IMAGE is empty, so this project's Container"
+        echo "Registry is disabled. Enable it under Settings > General >"
+        echo "Visibility, project features, permissions > Container registry."
+        exit 1
+      fi
+      IMAGE="${CI_REGISTRY_IMAGE}"
+      echo "Image path: $IMAGE"
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+version:
+  stage: version
+  image: curlimages/curl:latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - curl -sSfLo sbot "https://github.com/restechnica/semverbot/releases/download/v1.7.2/sbot-linux-amd64"
+    - chmod +x sbot
+    - PREDICTED=$(./sbot predict version)
+    - echo "VERSION=v${PREDICTED}" >> version.env
+    - cat version.env
+  artifacts:
+    reports:
+      dotenv: version.env
+
+container-build:
+  extends: .container-base
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - docker build -t "$IMAGE:$CI_COMMIT_SHORT_SHA" .
+    - |
+      echo "Testing built container..."
+      docker run --rm "$IMAGE:$CI_COMMIT_SHORT_SHA" --help
+      docker run --rm "$IMAGE:$CI_COMMIT_SHORT_SHA" plugins list | grep -q "kong-generator" || {
+        echo "ERROR: kong-generator plugin not discovered in container"
+        exit 1
+      }
+      echo "Container verified successfully."
+
+container-publish:
+  extends: .container-base
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - docker build -t "$IMAGE:$VERSION" -t "$IMAGE:$CI_COMMIT_SHORT_SHA" -t "$IMAGE:latest" -t "$IMAGE/cli:$VERSION" -t "$IMAGE/cli:latest" .
+    - |
+      echo "Testing built container before publish..."
+      docker run --rm "$IMAGE:$CI_COMMIT_SHORT_SHA" --help
+      docker run --rm "$IMAGE:$CI_COMMIT_SHORT_SHA" plugins list | grep -q "kong-generator" || {
+        echo "ERROR: kong-generator plugin not discovered in container"
+        exit 1
+      }
+    - docker push "$IMAGE:$VERSION"
+    - docker push "$IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$IMAGE:latest"
+    - docker push "$IMAGE/cli:$VERSION"
+    - docker push "$IMAGE/cli:latest"
+    - echo "Published $IMAGE and $IMAGE/cli at $VERSION, $CI_COMMIT_SHORT_SHA and latest."
