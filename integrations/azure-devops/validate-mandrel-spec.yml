@@ -1,0 +1,39 @@
+parameters:
+  - name: specPath
+    type: string
+    default: 'mandrel-spec.yaml'
+  - name: imageTag
+    type: string
+    default: 'latest'
+  - name: strict
+    type: boolean
+    default: false
+  - name: allowUnclaimedExtensions
+    type: boolean
+    default: false
+  - name: extraArgs
+    type: string
+    default: ''
+
+steps:
+  - task: Bash@3
+    displayName: 'Validate Mandrel Specification'
+    inputs:
+      targetType: 'inline'
+      script: |
+        FLAGS=""
+        if [ "${{ parameters.strict }}" = "True" ] || [ "${{ parameters.strict }}" = "true" ]; then
+          FLAGS="$FLAGS --strict"
+        fi
+        if [ "${{ parameters.allowUnclaimedExtensions }}" = "True" ] || [ "${{ parameters.allowUnclaimedExtensions }}" = "true" ]; then
+          FLAGS="$FLAGS --allow-unclaimed-extensions"
+        fi
+        if [ -n "${{ parameters.extraArgs }}" ]; then
+          FLAGS="$FLAGS ${{ parameters.extraArgs }}"
+        fi
+
+        docker run --rm \
+          -v "$(System.DefaultWorkingDirectory):/workspace:ro" \
+          -w /workspace \
+          "registry.gitlab.com/the-mandrel-project/mandrel-containers/cli:${{ parameters.imageTag }}" \
+          validate $FLAGS "${{ parameters.specPath }}"

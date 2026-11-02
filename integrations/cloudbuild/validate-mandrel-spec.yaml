@@ -1,0 +1,16 @@
+# Google Cloud Build build step configuration for Mandrel Spec validation.
+#
+# Cloud Build runs container steps directly, mounting the source workspace at /workspace.
+# The Mandrel CLI container sets WORKDIR to /workspace, so spec paths resolve relative to
+# the repository root.
+
+steps:
+  - id: 'validate-mandrel-spec'
+    name: 'registry.gitlab.com/the-mandrel-project/mandrel-containers/cli:${_MANDREL_CLI_TAG}'
+    args:
+      - 'validate'
+      - '${_MANDREL_SPEC_PATH}'
+
+substitutions:
+  _MANDREL_CLI_TAG: 'latest'
+  _MANDREL_SPEC_PATH: 'mandrel-spec.yaml'

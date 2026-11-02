@@ -1,0 +1,26 @@
+apiVersion: mandrelproject.ai/v1
+kind: MandrelSpec
+metadata:
+  name: demo-agent
+  namespace: default
+  version: "1.0.0"
+
+spec:
+  name: "Demo Agent"
+  description: "Specimen valid spec for CI integration tests."
+  version: "1.0.0"
+  keywords: ["demo", "testing"]
+  modalities: ["text"]
+  capabilities:
+    intents:
+      - name: "Health_Check"
+        description: "Returns agent health."
+
+  governance:
+    risk-profile: "safety-first"
+    circuit-breaker: "deny-all"
+    enforcement-matrices: []
+
+  runtime:
+    timeout-seconds: 30
+    max-hops-allowed: 3

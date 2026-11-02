@@ -1,0 +1,23 @@
+apiVersion: mandrelproject.ai/v1
+kind: MandrelSpec
+metadata:
+  name: broken-agent
+  namespace: default
+  version: "1.0.0"
+
+spec:
+  name: "Broken Agent"
+  description: "Specimen invalid spec for CI integration tests."
+  version: "1.0.0"
+
+  capabilities:
+    intents: []
+
+  governance:
+    risk-profile: "yolo-mode"
+    circuit-breaker: "deny-all"
+    enforcement-matrices: []
+
+  runtime:
+    timeout-seconds: -5
+    max-hops-allowed: 0

@@ -1,0 +1,44 @@
+name: "Validate Mandrel Spec"
+description: "Validates a Mandrel specification against schema constraints and governance policies using the official Mandrel CLI container."
+author: "The Mandrel Project"
+branding:
+  icon: "check-circle"
+  color: "blue"
+
+inputs:
+  spec-path:
+    description: "Path to the Mandrel specification file relative to repository root."
+    required: false
+    default: "mandrel-spec.yaml"
+  image-tag:
+    description: "Image tag for registry.gitlab.com/the-mandrel-project/mandrel-containers/cli."
+    required: false
+    default: "latest"
+  strict:
+    description: "Escalate policy and schema warnings to fatal errors."
+    required: false
+    default: "false"
+  allow-unclaimed-extensions:
+    description: "Permit unclaimed extension fields without failing."
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate Mandrel Specification
+      shell: bash
+      run: |
+        FLAGS=""
+        if [ "${{ inputs.strict }}" = "true" ]; then
+          FLAGS="$FLAGS --strict"
+        fi
+        if [ "${{ inputs.allow-unclaimed-extensions }}" = "true" ]; then
+          FLAGS="$FLAGS --allow-unclaimed-extensions"
+        fi
+
+        docker run --rm \
+          -v "${{ github.workspace }}:/workspace:ro" \
+          -w /workspace \
+          "registry.gitlab.com/the-mandrel-project/mandrel-containers/cli:${{ inputs.image-tag }}" \
+          validate $FLAGS "${{ inputs.spec-path }}"

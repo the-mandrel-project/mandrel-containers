@@ -57,6 +57,31 @@ docker run --rm -v $(pwd):/workspace \
 
 ---
 
+## CI/CD Pipeline Integrations
+
+Reusable pipeline templates and actions for automated specification validation across common CI providers:
+
+* **[GitHub Actions](integrations/github/README.md)**: Composite Action for GitHub workflows.
+* **[GitLab CI/CD](integrations/gitlab/README.md)**: CI/CD Catalog Component and template include.
+* **[Azure DevOps](integrations/azure-devops/README.md)**: Step template for Azure Pipelines.
+* **[Google Cloud Build](integrations/cloudbuild/README.md)**: Build step configuration for Cloud Build pipelines.
+
+### Testing Integrations Locally
+
+Run the integration test suite locally to verify template syntax and runtime contracts against test fixtures using Podman:
+
+```bash
+./scripts/test-integrations.sh
+```
+
+To run only syntax and schema linting without requiring container execution:
+
+```bash
+./scripts/test-integrations.sh --lint-only
+```
+
+---
+
 ## Building Locally
 
 Build the container image using Podman or Docker:

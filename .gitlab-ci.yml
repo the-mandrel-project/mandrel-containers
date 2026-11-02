@@ -7,6 +7,17 @@ stages:
   - build
   - publish
 
+lint-integrations:
+  stage: lint
+  image: python:3.13-alpine
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - pip install --quiet pyyaml
+  script:
+    - python scripts/test-integrations.py --lint-only
+
 .container-base:
   image: docker:27
   services:
@@ -66,6 +77,10 @@ container-build:
         exit 1
       }
       echo "Container verified successfully."
+    - |
+      echo "Testing integration templates against built container..."
+      apk add --no-cache python3 py3-yaml
+      python3 scripts/test-integrations.py --image "$IMAGE:$CI_COMMIT_SHORT_SHA"
 
 container-publish:
   extends: .container-base
@@ -81,6 +96,10 @@ container-publish:
         echo "ERROR: kong-generator plugin not discovered in container"
         exit 1
       }
+    - |
+      echo "Testing integration templates against built container..."
+      apk add --no-cache python3 py3-yaml
+      python3 scripts/test-integrations.py --image "$IMAGE:$CI_COMMIT_SHORT_SHA"
     - docker push "$IMAGE:$VERSION"
     - docker push "$IMAGE:$CI_COMMIT_SHORT_SHA"
     - docker push "$IMAGE:latest"
