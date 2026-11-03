@@ -137,49 +137,49 @@ def run_emulation_suite(engine: str, image: str) -> bool:
             "platform": "GitHub Actions",
             "fixture": POSITIVE_FIXTURE,
             "args": ["validate", POSITIVE_FIXTURE],
-            "expect_zero": True,
+            "expected_exit": 0,
         },
         {
             "platform": "GitHub Actions",
             "fixture": NEGATIVE_FIXTURE,
             "args": ["validate", "--strict", NEGATIVE_FIXTURE],
-            "expect_zero": False,
+            "expected_exit": 2,
         },
         {
             "platform": "Azure DevOps",
             "fixture": POSITIVE_FIXTURE,
             "args": ["validate", POSITIVE_FIXTURE],
-            "expect_zero": True,
+            "expected_exit": 0,
         },
         {
             "platform": "Azure DevOps",
             "fixture": NEGATIVE_FIXTURE,
             "args": ["validate", NEGATIVE_FIXTURE],
-            "expect_zero": False,
+            "expected_exit": 2,
         },
         {
             "platform": "Google Cloud Build",
             "fixture": POSITIVE_FIXTURE,
             "args": ["validate", POSITIVE_FIXTURE],
-            "expect_zero": True,
+            "expected_exit": 0,
         },
         {
             "platform": "Google Cloud Build",
             "fixture": NEGATIVE_FIXTURE,
             "args": ["validate", NEGATIVE_FIXTURE],
-            "expect_zero": False,
+            "expected_exit": 2,
         },
         {
             "platform": "GitLab CI",
             "fixture": POSITIVE_FIXTURE,
             "args": ["validate", POSITIVE_FIXTURE],
-            "expect_zero": True,
+            "expected_exit": 0,
         },
         {
             "platform": "GitLab CI",
             "fixture": NEGATIVE_FIXTURE,
             "args": ["validate", NEGATIVE_FIXTURE],
-            "expect_zero": False,
+            "expected_exit": 2,
         },
     ]
 
@@ -199,15 +199,16 @@ def run_emulation_suite(engine: str, image: str) -> bool:
         ] + test["args"]
 
         ret, out = run_command(cmd)
-        success = (ret == 0) if test["expect_zero"] else (ret != 0)
+        expected = test.get("expected_exit", 0)
+        success = (ret == expected)
 
         status_tag = "[PASS]" if success else "[FAIL]"
-        case_type = "positive" if test["expect_zero"] else "negative"
+        case_type = "positive" if expected == 0 else f"negative (exit {expected})"
         print(f"{status_tag} {platform} ({case_type}) -> exit code {ret}")
 
         if not success:
             all_ok = False
-            print(f"       Expected exit {'0' if test['expect_zero'] else 'non-zero'}, got {ret}")
+            print(f"       Expected exit {expected}, got {ret}")
             print(f"       Output:\n{out.strip()}\n")
 
     return all_ok

@@ -57,3 +57,24 @@ podman run --rm \
   registry.gitlab.com/the-mandrel-project/mandrel-containers/cli:latest \
   validate mandrel-spec.yaml
 ```
+
+## Exit Codes and Pipeline Behavior
+
+The Mandrel CLI returns deterministic exit codes to differentiate specification violations from operational errors:
+
+| Exit Code | Constant | Meaning | Pipeline Behavior |
+| :--- | :--- | :--- | :--- |
+| `0` | `ExitSuccess` | Specification passed validation cleanly | Job succeeds |
+| `1` | `ExitGeneral` | Operational failure (missing file, invalid flag syntax) | Job fails (infrastructure error) |
+| `2` | `ExitValidation` | Specification violated schema or governance constraints | Job fails (spec invalid) |
+| `3` | `ExitAuth` | Token missing or authentication failure | Job fails (auth error) |
+| `4` | `ExitPlugin` | Plugin execution failed or crashed | Job fails (plugin error) |
+
+Pipelines running in advisory mode can soft-fail on specification errors while still failing hard on operational problems:
+
+```yaml
+validate-mandrel-spec:
+  allow_failure:
+    exit_codes: [2]
+```
+
